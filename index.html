@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinyin Easy Writing</title>
+<meta name="theme-color" content="#1c1fc9">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        cobalt: { 50:'#eef0ff',100:'#dfe3ff',200:'#c3c9ff',300:'#9aa2ff',400:'#6b72f5',500:'#3b40e6',600:'#1c1fc9',700:'#1417a8',800:'#0f1280',900:'#0a0c58' },
+        ink: { DEFAULT:'#14141f', 800:'#1c1c2b', 700:'#2a2a3d' }
+      },
+      fontFamily: { display:['"Cormorant Garamond"','serif'], hanzi:['"Noto Serif SC"','"Songti SC"','SimSun','serif'] }
+    } }
+  }
+</script>
+<style>
+  body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:#f3f3f7; }
+  .perspective-1000 { perspective:1000px; }
+  .transform-style-3d { transform-style:preserve-3d; }
+  .backface-hidden { backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .rotate-y-180 { transform:rotateY(180deg); }
+  .checker {
+    height:10px;
+    background:
+      linear-gradient(45deg,#1c1fc9 25%,transparent 25%,transparent 75%,#1c1fc9 75%),
+      linear-gradient(45deg,#1c1fc9 25%,#14141f 25%,#14141f 75%,#1c1fc9 75%);
+    background-size:10px 10px; background-position:0 0,5px 5px;
+  }
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:#eef0f6; }
+  ::-webkit-scrollbar-thumb { background:#c3c9ff; border-radius:4px; }
+  .bg-star { position:fixed; pointer-events:none; z-index:0; }
+  header, main, #toast-wrap { position:relative; z-index:1; }
+  header { position:sticky; z-index:30; }
+  .fade-in { animation:fadeIn .2s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none} }
+  .pop { animation:pop .25s ease; }
+  @keyframes pop { 0%{transform:scale(.98)} 100%{transform:scale(1)} }
+  .mask { background:repeating-linear-gradient(45deg,#eef0ff,#eef0ff 6px,#e3e6ff 6px,#e3e6ff 12px); }
+  .wg-input { transition:border-color .1s; }
+  tr.row-done td { background-color:#e6faf0 !important; }
+  .focus-ring:focus { outline:none; box-shadow:0 0 0 3px rgba(59,64,230,.25); }
+
+  /* Expanded Grid Fullscreen Mode */
+  .grid-expanded {
+    position: fixed !important;
+    inset: 12px !important;
+    z-index: 50 !important;
+    max-height: none !important;
+    height: calc(100vh - 24px) !important;
+    background: #ffffff !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    border-radius: 1.5rem !important;
+    padding: 1.25rem !important;
+    overflow: hidden !important;      /* гаднах контейнер гүйхгүй, зөвхөн хүснэгт гүйнэ */
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .grid-expanded .grid-scroll { flex: 1 1 0 !important; min-height: 0 !important; max-height: none !important; }
+
+  /* Expand үед арын үндсэн хуудас гүйхгүй, expand цонх header-ээс дээгүүр байна */
+  body.grid-lock { overflow: hidden; }
+  body.grid-lock main { z-index: 60; }
+
+  /* Баганын өргөн (тогтмол) + тунгалаггүй дэвсгэр */
+  .sticky-col-num    { width:48px;  min-width:48px;  max-width:48px;  background:#ffffff; }
+  .sticky-col-hanzi  { width:150px; min-width:150px; max-width:150px; background:#fff3f3; }
+  .sticky-col-pinyin { width:170px; min-width:170px; max-width:170px; background:#eefcf5; }
+  .sticky-col-meaning{ width:170px; min-width:170px; max-width:170px; background:#faf3ff; }
+  thead .sticky-col-num    { background:#f8fafc !important; }
+  thead .sticky-col-hanzi  { background:#ffe9e9 !important; }
+  thead .sticky-col-pinyin { background:#dcf8ea !important; }
+  thead .sticky-col-meaning{ background:#f1e6ff !important; }
+
+  /* Түгжилт: зөвхөн Repeat 4+ байх үед (table дээр .pin-cols класс орно) */
+  .pin-cols .sticky-col-num     { position: sticky; left: 0;     z-index: 20; }
+  .pin-cols .sticky-col-hanzi   { position: sticky; left: 48px;  z-index: 20; }
+  .pin-cols .sticky-col-pinyin  { position: sticky; left: 198px; z-index: 20; box-shadow: 3px 0 5px -2px rgba(0,0,0,.12); }
+  .pin-cols .sticky-col-meaning { position: sticky; right: 0;    z-index: 20; box-shadow: -3px 0 5px -2px rgba(0,0,0,.12); }
+</style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+<svg class="bg-star" style="top:90px;right:-60px;width:260px;height:260px;color:#14141f;opacity:.05" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0c.6 7.4 4.6 11.4 12 12-7.4.6-11.4 4.6-12 12-.6-7.4-4.6-11.4-12-12C7.4 11.4 11.4 7.4 12 0z"/></svg>
+<svg class="bg-star" style="bottom:-50px;left:-40px;width:200px;height:200px;color:#1c1fc9;opacity:.07" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0c.6 7.4 4.6 11.4 12 12-7.4.6-11.4 4.6-12 12-.6-7.4-4.6-11.4-12-12C7.4 11.4 11.4 7.4 12 0z"/></svg>
+
+<header class="bg-white/95 backdrop-blur border-b border-slate-200 top-0 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16 items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-cobalt-600 flex items-center justify-center text-white shadow-md shadow-cobalt-200">
+          <i data-ic="sparkle" data-cls="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-display italic font-bold text-2xl text-ink leading-none">Pinyin Easy Writing</h1>
+          <p class="text-[11px] text-slate-500 font-medium mt-0.5">Type it. Hear it. Remember it.</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div class="hidden lg:flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600">
+          <i data-ic="layers" data-cls="w-4 h-4 text-cobalt-600"></i>
+          <span>Total Words: <strong id="total-words-count" class="text-ink">0</strong></span>
+        </div>
+        <button onclick="exportBackupData()" title="Download full JSON backup" class="flex items-center space-x-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+          <i data-ic="download" data-cls="w-4 h-4"></i><span class="hidden md:inline">Export Backup</span>
+        </button>
+        <label title="Restore from JSON backup" class="flex items-center space-x-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer">
+          <i data-ic="upload" data-cls="w-4 h-4"></i><span class="hidden md:inline">Import Backup</span>
+          <input type="file" accept=".json" onchange="importBackupData(event)" class="hidden">
+        </label>
+        <button onclick="openManageModal()" class="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+          <i data-ic="table" data-cls="w-4 h-4 text-cobalt-600"></i><span class="hidden sm:inline">Manage Decks</span>
+        </button>
+        <button onclick="openImportModal()" class="flex items-center space-x-2 bg-cobalt-50 hover:bg-cobalt-100 text-cobalt-700 px-3 py-2 rounded-xl text-xs font-bold transition">
+          <i data-ic="folderplus" data-cls="w-4 h-4"></i><span class="hidden sm:inline">Import Words</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="checker"></div>
+</header>
+
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+
+  <aside class="w-full md:w-72 flex-shrink-0 space-y-5">
+    <div id="todayCard" class="bg-ink text-white rounded-2xl p-4 shadow-sm"></div>
+
+    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">1. Select Folder / Deck</label>
+        <div class="relative">
+          <select id="folderSelect" onchange="handleFolderSelectChange()" class="focus-ring w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 font-semibold appearance-none cursor-pointer"></select>
+          <i data-ic="chevron" data-cls="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+        </div>
+      </div>
+      <div class="pt-3 border-t border-slate-100">
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. SRS Interval Classification</label>
+        <div class="relative">
+          <select id="srsFilterSelect" onchange="handleSRSFilterChange()" class="focus-ring w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 font-semibold appearance-none cursor-pointer">
+            <option value="ALL">All Intervals (No Filter)</option>
+            <option value="1min">Again (1 min)</option>
+            <option value="1day">Hard (1 day)</option>
+            <option value="3days">Good (3 days)</option>
+            <option value="7days">Easy (7 days)</option>
+            <option value="weak">Weak words (often missed)</option>
+          </select>
+          <i data-ic="filter" data-cls="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+        </div>
+      </div>
+      <div class="rounded-xl bg-cobalt-50 border border-cobalt-100 px-3 py-2.5 space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-cobalt-700">Card Count</span>
+          <span id="activeCountBadge" class="text-xs font-extrabold text-cobalt-700">0 Cards</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-white overflow-hidden"><div id="masteryBar" class="h-full bg-cobalt-600 rounded-full transition-all duration-300" style="width:0%"></div></div>
+        <div class="text-[10px] font-semibold text-cobalt-600"><span id="masteryText">Mastery 0%</span></div>
+      </div>
+      <button onclick="shuffleActiveCards()" class="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-xs transition">
+        <i data-ic="shuffle" data-cls="w-4 h-4 text-cobalt-600"></i><span>Smart Shuffle (weak words first)</span>
+      </button>
+    </div>
+
+    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-1">
+      <div class="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">3. Choose Study Mode</div>
+      <button onclick="setStudyMode('writing')"   id="tab-writing"   class="mode-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition"><i data-ic="grid" data-cls="w-4 h-4"></i><span>Repetitive Writing Grid</span></button>
+      <button onclick="setStudyMode('flashcard')" id="tab-flashcard" class="mode-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition"><i data-ic="card" data-cls="w-4 h-4"></i><span>Flashcard</span></button>
+      <button onclick="setStudyMode('quiz')"      id="tab-quiz"      class="mode-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition"><i data-ic="help" data-cls="w-4 h-4"></i><span>Multiple Choice Quiz</span></button>
+      <button onclick="setStudyMode('typing')"    id="tab-typing"    class="mode-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition"><i data-ic="keyboard" data-cls="w-4 h-4"></i><span>Tone Typing Practice</span></button>
+      <button onclick="setStudyMode('audio')"     id="tab-audio"     class="mode-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition"><i data-ic="volume" data-cls="w-4 h-4"></i><span>Audio Listening</span></button>
+    </div>
+
+    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Preferences</div>
+      <label class="flex items-center justify-between text-xs font-semibold text-slate-600 cursor-pointer">
+        <span>Auto-play audio</span>
+        <input type="checkbox" id="prefAutoplay" onchange="setPref('autoplay', this.checked)" class="accent-cobalt-600 w-4 h-4">
+      </label>
+      <label class="flex items-center justify-between text-xs font-semibold text-slate-600">
+        <span>Voice speed</span>
+        <select id="prefRate" onchange="setPref('rate', parseFloat(this.value))" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold">
+          <option value="0.6">Slow</option><option value="0.85">Normal</option><option value="1">Fast</option>
+        </select>
+      </label>
+      <button onclick="openManageModal()" class="w-full flex items-center justify-center space-x-2 text-xs text-cobalt-600 font-bold hover:underline py-1">
+        <i data-ic="edit" data-cls="w-3.5 h-3.5"></i><span>Open Deck Manager Table</span>
+      </button>
+      <button onclick="resetAllProgress()" class="w-full flex items-center justify-center space-x-2 text-xs text-slate-500 hover:text-rose-600 py-1 font-semibold transition">
+        <i data-ic="rotate-ccw" data-cls="w-3.5 h-3.5"></i><span>Reset All SRS Interval States</span>
+      </button>
+    </div>
+  </aside>
+
+  <section id="studyAreaContainer" class="flex-1 min-w-0 flex flex-col items-center justify-start min-h-[520px]"></section>
+</main>
+
+<div id="importModal" class="hidden fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-xl max-h-[92vh] rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+      <div class="flex items-center space-x-2"><i data-ic="folderplus" data-cls="w-5 h-5 text-cobalt-600"></i><h3 class="font-bold text-slate-800 text-base">Import Vocabulary / Folder Selection</h3></div>
+      <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg"><i data-ic="x" data-cls="w-5 h-5"></i></button>
+    </div>
+    <div class="p-6 space-y-4 overflow-y-auto">
+      <div class="bg-cobalt-50 border border-cobalt-100 rounded-2xl p-4 space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold uppercase tracking-wider text-cobalt-700">AI Prompt Generator Helper</span>
+          <button onclick="copyAIPrompt()" class="flex items-center space-x-1 text-xs bg-cobalt-600 hover:bg-cobalt-700 text-white px-2.5 py-1 rounded-lg transition font-bold"><i data-ic="copy" data-cls="w-3 h-3"></i><span>Copy AI Prompt</span></button>
+        </div>
+        <p class="text-xs text-slate-600">Send this prompt with your word list to ChatGPT or Gemini to format it into TSV:</p>
+        <textarea id="aiPromptText" readonly class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-xl h-20 text-slate-700 focus:outline-none font-mono">Please convert the following list of Chinese vocabulary into a plain text TSV (tab-separated values) format suitable for import. Strict Output Format: [Chinese Hanzi] \t [Tone Pinyin with numbers e.g. te4 da4] \t [English Meaning] Rules: 1. Do not write any markdown codeblock or intro text. 2. Ensure Pinyin uses tone numbers (1, 2, 3, 4, 5 for neutral). 3. Output each word on a new line. Here is my word list: [PASTE YOUR NEW WORDS HERE]</textarea>
+      </div>
+      <div class="space-y-3">
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider">Destination Folder:</label>
+        <select id="importFolderSelect" onchange="toggleFolderMode()" class="focus-ring w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800"></select>
+        <div id="newFolderContainer" class="hidden"><input type="text" id="importNewFolderName" placeholder="Enter new folder name (e.g. HSK2 Lesson 1)" class="focus-ring w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-800"></div>
+      </div>
+      <div class="text-xs text-slate-500 leading-relaxed">Format (3 columns separated by Tab or Comma):<br><code class="text-cobalt-600 font-bold">1. Chinese Hanzi | 2. Tone Pinyin (e.g. te4 da4) | 3. English Meaning</code></div>
+      <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+        <i data-ic="cloud-up" data-cls="w-7 h-7 text-slate-400 mb-1"></i>
+        <p class="text-xs text-slate-600 font-semibold">Select .txt or .csv file</p>
+        <input type="file" accept=".txt,.csv,.tsv" onchange="handleFileSelect(event)" class="hidden">
+      </label>
+      <div class="relative flex py-1 items-center"><div class="flex-grow border-t border-slate-200"></div><span class="flex-shrink mx-4 text-xs font-bold text-slate-400">or paste text data</span><div class="flex-grow border-t border-slate-200"></div></div>
+      <textarea id="importTextarea" rows="5" placeholder="特大	te4 da4	Extra Large&#10;仙草	xian1 cao3	Grass Jelly" class="focus-ring w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-xs font-mono text-slate-800"></textarea>
+    </div>
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3">
+      <button onclick="closeImportModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 transition">Cancel</button>
+      <button onclick="processImport()" class="px-5 py-2.5 bg-cobalt-600 hover:bg-cobalt-700 text-white font-bold rounded-xl text-xs transition shadow-md shadow-cobalt-200">Import Words</button>
+    </div>
+  </div>
+</div>
+
+<div id="manageModal" class="hidden fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-5xl h-[85vh] rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+      <div class="flex items-center space-x-2"><i data-ic="table" data-cls="w-5 h-5 text-cobalt-600"></i><h3 class="font-bold text-slate-800 text-base">Folder Content & Word Table Manager</h3></div>
+      <button onclick="closeManageModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg"><i data-ic="x" data-cls="w-5 h-5"></i></button>
+    </div>
+    <div class="flex-1 flex overflow-hidden">
+      <aside class="w-56 sm:w-64 bg-slate-50 border-r border-slate-200 p-4 flex flex-col overflow-y-auto">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Folders / Decks</h4>
+        <div id="manageFolderList" class="space-y-1 flex-1"></div>
+      </aside>
+      <main class="flex-1 p-6 flex flex-col overflow-hidden bg-white min-w-0">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 flex-shrink-0">
+          <div><h3 id="manageActiveFolderName" class="text-lg font-bold text-slate-800">Folder Words</h3><p class="text-xs text-slate-500">View, edit, or remove words in this folder.</p></div>
+          <div class="flex items-center space-x-2">
+            <button onclick="toggleAddWordForm()" class="bg-cobalt-50 hover:bg-cobalt-100 text-cobalt-700 font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center space-x-1.5"><i data-ic="plus" data-cls="w-4 h-4"></i><span>Add New Word Row</span></button>
+            <button onclick="deleteCurrentFolder()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center space-x-1.5"><i data-ic="trash" data-cls="w-4 h-4"></i><span>Delete Folder</span></button>
+          </div>
+        </div>
+        <form id="inlineAddWordForm" onsubmit="saveInlineNewWord(event)" class="hidden mb-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex-shrink-0 space-y-3">
+          <div class="grid grid-cols-3 gap-3">
+            <div><label class="block text-[11px] font-bold text-slate-500 mb-1">Hanzi (Chinese)</label><input type="text" id="addHanzi" required placeholder="e.g. 特大" class="focus-ring w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"></div>
+            <div><label class="block text-[11px] font-bold text-slate-500 mb-1">Pinyin with Tone Numbers</label><input type="text" id="addPinyin" required placeholder="e.g. te4 da4" class="focus-ring w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"></div>
+            <div><label class="block text-[11px] font-bold text-slate-500 mb-1">English Meaning</label><input type="text" id="addMeaning" required placeholder="e.g. Extra Large" class="focus-ring w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"></div>
+          </div>
+          <div class="flex justify-end space-x-2"><button type="button" onclick="toggleAddWordForm()" class="px-3 py-1.5 text-xs font-bold text-slate-500">Cancel</button><button type="submit" class="px-4 py-1.5 bg-cobalt-600 hover:bg-cobalt-700 text-white font-bold rounded-xl text-xs transition">Save Word Row</button></div>
+        </form>
+        <div class="flex-1 overflow-auto border border-slate-200 rounded-2xl">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10"><tr>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">a. Hanzi</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/3">b. Tone Pinyin</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/3">c. English Meaning</th>
+              <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+            </tr></thead>
+            <tbody id="manageWordTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div id="toast-wrap" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] space-y-2 pointer-events-none"></div>
+
+<script>
+const ICONS = {
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+  table:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  folderplus:'<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/><path d="M12 10v6M9 13h6"/>',
+  layers:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+  shuffle:'<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+  chevron:'<polyline points="6 9 12 15 18 9"/>',
+  left:'<polyline points="15 18 9 12 15 6"/>',
+  right:'<polyline points="9 18 15 12 9 6"/>',
+  filter:'<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+  grid:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+  card:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+  help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  keyboard:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>',
+  volume:'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  'rotate-ccw':'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+  'rotate-cw':'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+  x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  minus:'<line x1="5" y1="12" x2="19" y2="12"/>',
+  trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+  copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  'cloud-up':'<polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>',
+  'folder-open':'<path d="M6 14l1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+  eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+  'eye-off':'<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
+  check:'<polyline points="20 6 9 17 4 12"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  bulb:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
+  sparkle:'<path d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z" fill="currentColor" stroke="none"/>',
+  expand:'<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
+  shrink:'<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="10" y1="14" x2="3" y2="21"/>'
+};
+function ic(name, cls) {
+  return `<svg class="${cls || 'w-4 h-4'} inline-block flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
+function hydrateIcons(root) {
+  (root || document).querySelectorAll('[data-ic]').forEach(el => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = ic(el.dataset.ic, el.dataset.cls);
+    el.replaceWith(tmp.firstChild);
+  });
+}
+
+const STORE_DECK  = 'pinyin_easy_writing_data';
+const STORE_STATE = 'pinyin_easy_writing_state_v2';
+
+let appData = {
+  folders: {
+    "Default Deck": [
+      { id:"1", hanzi:"特大", rawPinyin:"te4 da4",    pinyin:"tè dà",    meaning:"Extra Large cup / 1000 ml", srs:"1min",  weight:5 },
+      { id:"2", hanzi:"仙草", rawPinyin:"xian1 cao3", pinyin:"xiān cǎo", meaning:"Grass Jelly",               srs:"1min",  weight:5 },
+      { id:"3", hanzi:"珍珠", rawPinyin:"zhen1 zhu1", pinyin:"zhēn zhū", meaning:"Boba / Tapioca Pearls",     srs:"3days", weight:1 }
+    ]
+  }
+};
+
+const DEFAULT_STATE = {
+  folder:'ALL', srs:'ALL', mode:'writing', index:0, page:0, pageSize:20,
+  repeatCols:3,
+  hide:{ hanzi:false, pinyin:false, meaning:false },
+  inputs:{},
+  extras:[],
+  stats:{},
+  goal:20, autoplay:false, rate:0.85
+};
+let S = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+let currentStudyCards = [];
+let isCardFlipped = false;
+let combo = 0;
+const peek = new Set();
+let manageActiveFolder = '';
+let editingCardId = null;
+let isGridExpanded = false;
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+let saveTimer = null;
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveState, 250); }
+function saveState() {
+  clearTimeout(saveTimer);
+  const keys = Object.keys(S.stats).sort();
+  while (keys.length > 90) delete S.stats[keys.shift()];
+  lsSet(STORE_STATE, JSON.stringify(S));
+}
+function saveDeck() {
+  lsSet(STORE_DECK, JSON.stringify(appData));
+  document.getElementById('total-words-count').textContent = countAll();
+}
+window.addEventListener('pagehide', () => { saveState(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveState(); });
+
+function loadAll() {
+  try {
+    const d = JSON.parse(lsGet(STORE_DECK) || 'null');
+    if (d && d.folders && typeof d.folders === 'object') appData = d;
+  } catch (e) {}
+  try {
+    const s = JSON.parse(lsGet(STORE_STATE) || 'null');
+    if (s && typeof s === 'object') {
+      S = { ...S, ...s, hide: { ...S.hide, ...(s.hide || {}) } };
+    }
+  } catch (e) {}
+  normalizeDeck();
+  S.repeatCols = Math.min(10, Math.max(1, parseInt(S.repeatCols) || 3));
+  if (![10, 20, 50].includes(S.pageSize)) S.pageSize = 20;
+}
+
+function normalizeDeck() {
+  let n = 0;
+  Object.keys(appData.folders).forEach(f => {
+    if (!Array.isArray(appData.folders[f])) appData.folders[f] = [];
+    appData.folders[f].forEach(c => {
+      if (!c.id || !/^[\w-]+$/.test(String(c.id))) c.id = 'c' + Date.now().toString(36) + (n++);
+      c.id = String(c.id);
+      c.hanzi = c.hanzi ?? c.chinese ?? '';
+      c.rawPinyin = c.rawPinyin ?? '';
+      if (!c.pinyin) c.pinyin = convertTonePinyin(c.rawPinyin);
+      c.meaning = c.meaning ?? '';
+      c.srs = c.srs || '1min';
+      c.weight = c.weight || 3;
+    });
+  });
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function allCards() { const o = []; Object.values(appData.folders).forEach(l => o.push(...l)); return o; }
+function countAll() { return allCards().length; }
+function findCard(id) { return allCards().find(c => c.id === id); }
+function folderOf(card) { return Object.keys(appData.folders).find(k => appData.folders[k].some(c => c.id === card.id)) || 'General'; }
+function shuffleArray(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
+function todayKey() { return new Date().toLocaleDateString('en-CA'); }
+function uid(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function toast(msg, kind) {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  const col = kind === 'err' ? 'bg-rose-600' : kind === 'ok' ? 'bg-emerald-600' : 'bg-ink';
+  el.className = `${col} text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg fade-in`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 2000);
+}
+
+function convertTonePinyin(text) {
+  if (!text) return '';
+  const toneMap = {
+    a:['ā','á','ǎ','à'], e:['ē','é','ě','è'], i:['ī','í','ǐ','ì'],
+    o:['ō','ó','ǒ','ò'], u:['ū','ú','ǔ','ù'], 'ü':['ǖ','ǘ','ǚ','ǜ']
+  };
+  return String(text).replace(/u:/g, 'ü').replace(/v/g, 'ü').split(/\s+/).map(syl => {
+    const m = syl.match(/^([a-zA-ZüÜ]+)([0-5])$/);
+    if (!m) return syl;
+    const word = m[1], tone = parseInt(m[2], 10);
+    if (tone === 5 || tone === 0) return word;
+    const lower = word.toLowerCase();
+    let idx = -1;
+    if (lower.includes('a')) idx = lower.indexOf('a');
+    else if (lower.includes('e')) idx = lower.indexOf('e');
+    else if (lower.includes('ou')) idx = lower.indexOf('o');
+    else { for (let i = lower.length - 1; i >= 0; i--) { if ('iouü'.includes(lower[i])) { idx = i; break; } } }
+    if (idx === -1) return word;
+    const ch = word[idx];
+    const rep = toneMap[ch.toLowerCase()] ? toneMap[ch.toLowerCase()][tone - 1] : ch;
+    const fin = (ch !== ch.toLowerCase()) ? rep.toUpperCase() : rep;
+    return word.substring(0, idx) + fin + word.substring(idx + 1);
+  }).join(' ');
+}
+function normalizeAnswer(s) { return String(s || '').toLowerCase().replace(/[\s\-_]/g, '').replace(/u:/g, 'ü').replace(/v/g, 'ü'); }
+function pinyinMatches(input, t) {
+  const u = normalizeAnswer(input);
+  if (!u) return false;
+  return u === normalizeAnswer(t.rawPinyin) || u === normalizeAnswer(t.pinyin);
+}
+function pinyinHint(raw) {
+  return String(raw).split(/\s+/).map(s => s.charAt(0) + '·'.repeat(Math.max(0, s.replace(/[0-5]/g, '').length - 1))).join(' ');
+}
+
+function recordResult(ok) {
+  const k = todayKey();
+  const d = S.stats[k] || (S.stats[k] = { right: 0, wrong: 0 });
+  if (ok) { d.right++; combo++; if (d.right === S.goal) toast('🎯 Daily goal reached! Great work.', 'ok'); }
+  else { d.wrong++; combo = 0; }
+  scheduleSave();
+  renderTodayCard();
+}
+function calcStreak() {
+  let streak = 0; const d = new Date();
+  const has = date => { const x = S.stats[date.toLocaleDateString('en-CA')]; return x && (x.right + x.wrong) > 0; };
+  if (!has(d)) d.setDate(d.getDate() - 1);
+  while (has(d)) { streak++; d.setDate(d.getDate() - 1); }
+  return streak;
+}
+function renderTodayCard() {
+  const el = document.getElementById('todayCard');
+  const t = S.stats[todayKey()] || { right: 0, wrong: 0 };
+  const pct = Math.min(100, Math.round(t.right / S.goal * 100));
+  const total = t.right + t.wrong;
+  const acc = total ? Math.round(t.right / total * 100) : 0;
+  el.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center space-x-2"><span class="text-amber-400">${ic('flame', 'w-5 h-5')}</span><span class="text-sm font-extrabold">${calcStreak()}-day streak</span></div>
+      <select onchange="setGoal(this.value)" class="bg-ink-700 text-white text-[11px] font-bold rounded-lg px-2 py-1 border-0 focus:outline-none">
+        ${[10, 20, 30, 50, 100].map(g => `<option value="${g}" ${g === S.goal ? 'selected' : ''}>Goal ${g}</option>`).join('')}
+      </select>
+    </div>
+    <div class="h-2 rounded-full bg-ink-700 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-cobalt-400 to-cobalt-300 transition-all duration-300" style="width:${pct}%"></div></div>
+    <div class="flex justify-between text-[11px] font-semibold text-slate-300 mt-2">
+      <span>${t.right} / ${S.goal} correct today</span><span>${total ? 'Accuracy ' + acc + '%' : 'Let’s start!'}</span>
+    </div>`;
+}
+function setGoal(v) { S.goal = parseInt(v) || 20; scheduleSave(); renderTodayCard(); }
+function comboChip() {
+  return combo >= 2 ? `<span class="inline-flex items-center space-x-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-bold">${ic('flame', 'w-3 h-3')}<span>${combo} in a row</span></span>` : '';
+}
+
+let zhVoice = null;
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const v = speechSynthesis.getVoices();
+  zhVoice = v.find(x => /zh[-_]CN/i.test(x.lang)) || v.find(x => /^zh/i.test(x.lang)) || null;
+}
+if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speakText(text) {
+  if (!('speechSynthesis' in window) || !text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN'; u.rate = S.rate || 0.85;
+  if (zhVoice) u.voice = zhVoice;
+  speechSynthesis.speak(u);
+}
+function speakCardId(id) { const c = findCard(id); if (c) speakText(c.hanzi); }
+function setPref(k, v) { S[k] = v; scheduleSave(); }
+
+function populateFolderDropdowns() {
+  const fs = document.getElementById('folderSelect');
+  const is = document.getElementById('importFolderSelect');
+  const keys = Object.keys(appData.folders);
+  fs.innerHTML = `<option value="ALL">All Folders Combined (${countAll()})</option>` + keys.map(k => `<option value="${esc(k)}">${esc(k)} (${appData.folders[k].length})</option>`).join('');
+  if (S.folder !== 'ALL' && !appData.folders[S.folder]) S.folder = 'ALL';
+  fs.value = S.folder;
+  is.innerHTML = `<option value="NEW">+ Create New Folder...</option>` + keys.map(k => `<option value="${esc(k)}">Add to Existing: "${esc(k)}"</option>`).join('');
+}
+function handleFolderSelectChange() { S.folder = document.getElementById('folderSelect').value; refreshActiveStudySet(); }
+function handleSRSFilterChange() { S.srs = document.getElementById('srsFilterSelect').value; refreshActiveStudySet(); }
+
+function refreshActiveStudySet(keep) {
+  let cards = S.folder === 'ALL' ? allCards() : [...(appData.folders[S.folder] || [])];
+  if (S.srs === 'weak') cards = cards.filter(c => (c.weight || 0) >= 5);
+  else if (S.srs !== 'ALL') cards = cards.filter(c => c.srs === S.srs);
+  currentStudyCards = cards;
+  if (!keep) { S.index = 0; S.page = 0; }
+  if (S.index >= cards.length) S.index = 0;
+  document.getElementById('activeCountBadge').textContent = `${cards.length} Cards`;
+  const mastered = cards.filter(c => c.srs === '3days' || c.srs === '7days').length;
+  const mp = cards.length ? Math.round(mastered / cards.length * 100) : 0;
+  document.getElementById('masteryBar').style.width = mp + '%';
+  document.getElementById('masteryText').textContent = `Mastery ${mp}%`;
+  scheduleSave();
+  renderCurrentStudyMode();
+}
+
+function shuffleActiveCards() {
+  if (!currentStudyCards.length) return;
+  const pool = [];
+  currentStudyCards.forEach(c => { for (let i = 0; i < (c.weight || 3); i++) pool.push(c); });
+  shuffleArray(pool);
+  const seen = new Set(), uniq = [];
+  pool.forEach(c => { if (!seen.has(c.id)) { seen.add(c.id); uniq.push(c); } });
+  currentStudyCards = uniq; S.index = 0; S.page = 0;
+  renderCurrentStudyMode();
+  toast('Shuffled – weak words come first');
+}
+
+function updateCardSRSStage(cardId, stage) {
+  const c = findCard(cardId); if (!c) return;
+  c.srs = stage;
+  if (stage === '1min') c.weight = (c.weight || 1) + 2;
+  else if (stage === '7days') c.weight = 1;
+  else c.weight = Math.max(1, (c.weight || 1) - 1);
+  saveDeck();
+}
+function resetAllProgress() {
+  if (!confirm('Reset all SRS interval states?')) return;
+  allCards().forEach(c => { c.srs = '1min'; c.weight = 3; });
+  saveDeck(); refreshActiveStudySet(true); toast('SRS states reset');
+}
+
+const NAV_ACTIVE = ['bg-cobalt-50', 'text-cobalt-700'];
+const NAV_IDLE = ['text-slate-600', 'hover:bg-slate-50'];
+function setStudyMode(mode, keepIndex) {
+  S.mode = mode;
+  ['writing', 'flashcard', 'quiz', 'typing', 'audio'].forEach(m => {
+    const b = document.getElementById('tab-' + m);
+    b.classList.remove(...NAV_ACTIVE, ...NAV_IDLE);
+    b.classList.add(...(m === mode ? NAV_ACTIVE : NAV_IDLE));
+  });
+  if (!keepIndex) S.index = 0;
+  scheduleSave();
+  renderCurrentStudyMode();
+}
+function nextCard() {
+  S.index = (S.index + 1) % currentStudyCards.length;
+  scheduleSave(); renderCurrentStudyMode();
+}
+function prevCard() {
+  S.index = (S.index - 1 + currentStudyCards.length) % currentStudyCards.length;
+  scheduleSave(); renderCurrentStudyMode();
+}
+
+function renderCurrentStudyMode() {
+  if (isGridExpanded && (S.mode !== 'writing' || (!currentStudyCards.length && !S.extras.length))) isGridExpanded = false;
+  document.body.classList.toggle('grid-lock', isGridExpanded);
+  const c = document.getElementById('studyAreaContainer');
+  if (!currentStudyCards.length && !(S.mode === 'writing' && S.extras.length)) {
+    c.innerHTML = `
+      <div class="w-full max-w-md my-auto text-center p-8 bg-white rounded-3xl border border-slate-200 shadow-sm fade-in">
+        <div class="w-16 h-16 bg-cobalt-50 text-cobalt-600 rounded-2xl flex items-center justify-center mx-auto mb-4">${ic('folder-open', 'w-8 h-8')}</div>
+        <h3 class="text-lg font-bold text-slate-800 mb-1">No Cards Found</h3>
+        <p class="text-sm text-slate-500 mb-6">There are no vocabulary cards matching your current folder or interval filter. Try importing words or changing filters.</p>
+        <div class="flex justify-center space-x-2">
+          <button onclick="openImportModal()" class="bg-cobalt-600 hover:bg-cobalt-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition shadow-md shadow-cobalt-200">Import Words</button>
+          ${S.mode === 'writing' ? `<button onclick="addExtraRow()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-xl text-sm transition">Add Row</button>` : ''}
+        </div>
+      </div>`;
+    return;
+  }
+  if (S.mode === 'writing') renderWritingGridMode(c);
+  else if (S.mode === 'flashcard') renderFlashcardMode(c);
+  else if (S.mode === 'quiz') renderQuizMode(c);
+  else if (S.mode === 'typing') renderTypingMode(c);
+  else if (S.mode === 'audio') renderAudioMode(c);
+}
+
+const FIELD_LABEL = { hanzi: 'Hanzi', pinyin: 'Pinyin', meaning: 'Meaning' };
+
+function fieldInner(card, field) {
+  const key = card.id + '|' + field;
+  const hiddenOn = S.hide[field];
+  const revealed = peek.has(key);
+  if (hiddenOn && !revealed) {
+    return `<button data-peek="${key}" title="Click to peek" class="mask w-full min-w-[64px] h-8 rounded-lg text-slate-400 text-xs font-bold tracking-widest hover:opacity-80">• • •</button>`;
+  }
+  let inner;
+  if (field === 'hanzi') inner = `<span class="font-hanzi text-2xl font-bold text-ink">${esc(card.hanzi)}</span>`;
+  else if (field === 'pinyin') inner = `<div class="text-sm font-bold text-cobalt-700">${esc(card.pinyin)}</div><div class="text-[10px] font-mono text-slate-400">${esc(card.rawPinyin)}</div>`;
+  else inner = `<span class="text-sm font-semibold text-slate-700">${esc(card.meaning)}</span>`;
+  return hiddenOn ? `<div data-peek="${key}" title="Click to hide again" class="cursor-pointer">${inner}</div>` : inner;
+}
+
+function targetFor(id) {
+  const c = findCard(id);
+  if (c) return c;
+  const ex = S.extras.find(e => e.id === id);
+  if (ex && ex.pinyin.trim()) return { rawPinyin: ex.pinyin, pinyin: convertTonePinyin(ex.pinyin) };
+  return null;
+}
+
+function gridRow(card, num, extra) {
+  const id = card.id;
+  let reps = '';
+  for (let i = 1; i <= S.repeatCols; i++) {
+    const key = id + '|' + i;
+    reps += `<td class="px-2 py-2"><input type="text" class="wg-input focus-ring w-full min-w-[110px] bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800" data-id="${id}" data-col="${i}" value="${esc(S.inputs[key] || '')}" placeholder="Type pinyin…" autocomplete="off" autocapitalize="off" spellcheck="false"></td>`;
+  }
+  let hanziTd, pinyinTd, meaningTd;
+  if (extra) {
+    hanziTd = `<input type="text" class="ex-input focus-ring w-full min-w-[80px] bg-white border border-dashed border-slate-300 rounded-xl px-3 py-2 text-lg font-hanzi font-bold" data-id="${id}" data-f="hanzi" value="${esc(card.hanzi)}" placeholder="汉字">`;
+    pinyinTd = `<input type="text" class="ex-input focus-ring w-full min-w-[100px] bg-white border border-dashed border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold" data-id="${id}" data-f="pinyin" value="${esc(card.pinyin)}" placeholder="te4 da4" autocapitalize="off">`;
+    meaningTd = `<input type="text" class="ex-input focus-ring w-full min-w-[100px] bg-white border border-dashed border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold" data-id="${id}" data-f="meaning" value="${esc(card.meaning)}" placeholder="meaning">
+      <div class="flex space-x-1 mt-1.5"><button data-save-extra="${id}" class="text-[11px] font-bold bg-cobalt-50 text-cobalt-700 hover:bg-cobalt-100 rounded-lg px-2 py-1">Save to deck</button><button data-del-extra="${id}" class="text-[11px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg px-2 py-1">Remove</button></div>`;
+  } else {
+    hanziTd = `<div class="flex items-center space-x-2"><div data-cell="${id}|hanzi" class="flex-1">${fieldInner(card, 'hanzi')}</div><button data-speak="${id}" title="Listen" class="text-slate-400 hover:text-cobalt-600 p-1.5 rounded-full hover:bg-cobalt-50 transition">${ic('volume', 'w-4 h-4')}</button></div>`;
+    pinyinTd = `<div data-cell="${id}|pinyin">${fieldInner(card, 'pinyin')}</div>`;
+    meaningTd = `<div data-cell="${id}|meaning">${fieldInner(card, 'meaning')}</div>`;
+  }
+  return `<tr data-row="${id}" class="hover:bg-slate-50/70 transition">
+    <td class="px-3 py-3 text-center text-xs font-bold text-slate-400 sticky-col-num"><span class="rownum">${num}</span><span class="rowcheck hidden text-emerald-600">${ic('check', 'w-4 h-4')}</span></td>
+    <td class="px-3 py-2 align-middle sticky-col-hanzi">${hanziTd}</td>
+    <td class="px-3 py-2 align-middle sticky-col-pinyin">${pinyinTd}</td>
+    ${reps}
+    <td class="px-3 py-2 align-middle sticky-col-meaning">${meaningTd}</td>
+  </tr>`;
+}
+
+function renderWritingGridMode(container) {
+  const size = S.pageSize;
+  const pages = Math.max(1, Math.ceil(currentStudyCards.length / size));
+  if (S.page >= pages) S.page = pages - 1;
+  if (S.page < 0) S.page = 0;
+  const start = S.page * size;
+  const slice = currentStudyCards.slice(start, start + size);
+  const onLastPage = S.page === pages - 1;
+
+  let headReps = '';
+  for (let i = 1; i <= S.repeatCols; i++) headReps += `<th class="px-3 py-3 text-xs font-bold text-sky-700 uppercase tracking-wider bg-sky-50/70">Repeat ${i}</th>`;
+
+  let rows = slice.map((c, i) => gridRow(c, start + i + 1, false)).join('');
+  if (onLastPage) rows += S.extras.map((e, i) => gridRow(e, currentStudyCards.length + i + 1, true)).join('');
+
+  const hideBtn = (f) => {
+    const on = S.hide[f];
+    return `<button data-toggle-hide="${f}" class="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border ${on ? 'bg-ink text-white border-ink' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}">${ic(on ? 'eye-off' : 'eye', 'w-4 h-4')}<span>${on ? 'Show' : 'Hide'} ${FIELD_LABEL[f]}</span></button>`;
+  };
+
+  const expClass = isGridExpanded ? 'grid-expanded' : '';
+
+  container.innerHTML = `
+  <div class="w-full space-y-4 fade-in ${expClass}">
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+      <div class="flex flex-wrap justify-between items-start gap-3">
+        <div>
+          <h3 class="font-bold text-slate-800 text-base">Repetitive Writing Grid</h3>
+          <p class="text-xs text-slate-500 max-w-xl">Type the pinyin again and again on your computer to lock it into memory — before you move on to flashcards. Hide a column to test yourself. <span class="font-semibold text-cobalt-600">Enter</span> jumps to the next box.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div id="gridProgress" class="text-xs font-extrabold bg-cobalt-50 text-cobalt-700 border border-cobalt-100 rounded-full px-3 py-1.5">0 / 0 rows complete</div>
+          <button onclick="toggleGridExpand()" class="flex items-center space-x-1.5 bg-cobalt-600 hover:bg-cobalt-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm">
+            ${ic(isGridExpanded ? 'shrink' : 'expand', 'w-4 h-4')}<span>${isGridExpanded ? 'Exit Fullscreen' : 'Expand Grid'}</span>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        ${hideBtn('hanzi')}${hideBtn('pinyin')}${hideBtn('meaning')}
+        <button data-show-all class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 transition">Show all</button>
+        <span class="hidden sm:block w-px h-6 bg-slate-200 mx-1"></span>
+        <div class="flex items-center bg-slate-100 rounded-xl overflow-hidden">
+          <button data-col-minus class="px-2.5 py-2 text-slate-600 hover:bg-slate-200 disabled:opacity-40" ${S.repeatCols <= 1 ? 'disabled' : ''} title="Remove last Repeat column">${ic('minus', 'w-4 h-4')}</button>
+          <span class="px-2 text-xs font-bold text-slate-700">Repeat × ${S.repeatCols}</span>
+          <button data-col-plus class="px-2.5 py-2 text-slate-600 hover:bg-slate-200 disabled:opacity-40" ${S.repeatCols >= 10 ? 'disabled' : ''} title="Add Repeat column (max 10)">${ic('plus', 'w-4 h-4')}</button>
+        </div>
+        <button data-clear-inputs class="px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 transition">Clear typed text</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll border border-slate-200 rounded-2xl bg-white shadow-sm flex-1" style="${isGridExpanded ? 'max-height:none' : 'max-height:68vh'};overflow-y:auto;overflow-x:${S.repeatCols >= 4 ? 'auto' : 'hidden'}">
+      <table class="w-full text-left border-collapse ${S.repeatCols >= 4 ? 'pin-cols' : ''}">
+        <thead class="sticky top-0 z-30 bg-white shadow-[0_1px_0_#e2e8f0]">
+          <tr>
+            <th class="px-3 py-3 text-xs font-bold text-slate-400 sticky-col-num">#</th>
+            <th class="px-3 py-3 text-xs font-bold text-rose-700 uppercase tracking-wider sticky-col-hanzi">Hanzi</th>
+            <th class="px-3 py-3 text-xs font-bold text-emerald-700 uppercase tracking-wider sticky-col-pinyin">Pinyin</th>
+            ${headReps}
+            <th class="px-3 py-3 text-xs font-bold text-violet-700 uppercase tracking-wider sticky-col-meaning">Meaning</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">${rows}</tbody>
+      </table>
+      <div class="p-3 border-t border-slate-100">
+        <button data-add-row class="w-full flex items-center justify-center space-x-2 border-2 border-dashed border-cobalt-200 hover:border-cobalt-400 hover:bg-cobalt-50 text-cobalt-600 font-bold text-xs py-3 rounded-xl transition">${ic('plus', 'w-4 h-4')}<span>Add row (write your own word)</span></button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-500 pt-2">
+      <div class="flex items-center space-x-2"><span>Rows per page</span>
+        <select data-page-size class="bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold">${[10, 20, 50].map(n => `<option value="${n}" ${n === S.pageSize ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button data-page-prev class="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40" ${S.page <= 0 ? 'disabled' : ''}>${ic('left', 'w-4 h-4')}</button>
+        <span>Page ${S.page + 1} / ${pages}</span>
+        <button data-page-next class="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40" ${S.page >= pages - 1 ? 'disabled' : ''}>${ic('right', 'w-4 h-4')}</button>
+      </div>
+    </div>
+  </div>`;
+
+  container.querySelectorAll('.wg-input').forEach(inp => { styleWgInput(inp, false); });
+  container.querySelectorAll('tr[data-row]').forEach(tr => updateRowStatus(tr.dataset.row, false));
+  updateGridProgress();
+}
+
+function toggleGridExpand() {
+  isGridExpanded = !isGridExpanded;
+  renderCurrentStudyMode();
+}
+
+function styleWgInput(inp, record) {
+  const base = 'wg-input focus-ring w-full min-w-[110px] rounded-xl px-3 py-2 text-sm border ';
+  const v = inp.value.trim();
+  const t = targetFor(inp.dataset.id);
+  let ok = false;
+  if (!v || !t) inp.className = base + 'bg-slate-50 border-slate-200 font-semibold text-slate-800';
+  else if (pinyinMatches(v, t)) { ok = true; inp.className = base + 'bg-emerald-50 border-emerald-400 text-emerald-700 font-bold'; }
+  else inp.className = base + 'bg-rose-50 border-rose-300 text-rose-700 font-semibold';
+  const was = inp.dataset.ok === '1';
+  inp.dataset.ok = ok ? '1' : '0';
+  if (record && ok && !was) recordResult(true);
+  return ok;
+}
+
+function updateRowStatus(id, announce) {
+  const tr = document.querySelector(`tr[data-row="${id}"]`);
+  if (!tr) return;
+  const inputs = [...tr.querySelectorAll('.wg-input')];
+  const done = inputs.length > 0 && inputs.every(i => i.dataset.ok === '1');
+  const was = tr.classList.contains('row-done');
+  tr.classList.toggle('row-done', done);
+  tr.querySelector('.rownum').classList.toggle('hidden', done);
+  tr.querySelector('.rowcheck').classList.toggle('hidden', !done);
+  if (done && !was && announce) {
+    const t = findCard(id) || S.extras.find(e => e.id === id);
+    toast(`✓ ${t ? t.hanzi : 'Row'} complete!`, 'ok');
+  }
+}
+
+function updateGridProgress() {
+  const el = document.getElementById('gridProgress');
+  if (!el) return;
+  const rows = document.querySelectorAll('tr[data-row]');
+  const done = document.querySelectorAll('tr[data-row].row-done').length;
+  el.textContent = `${done} / ${rows.length} rows complete`;
+  if (rows.length && done === rows.length) el.classList.add('pop');
+}
+
+function addExtraRow() {
+  S.extras.push({ id: uid('x'), hanzi: '', pinyin: '', meaning: '' });
+  scheduleSave();
+  const pages = Math.max(1, Math.ceil(currentStudyCards.length / S.pageSize));
+  S.page = pages - 1;
+  renderCurrentStudyMode();
+  setTimeout(() => { const els = document.querySelectorAll('.ex-input[data-f="hanzi"]'); if (els.length) els[els.length - 1].focus(); }, 30);
+}
+
+(function () {
+  const root = document.getElementById('studyAreaContainer');
+
+  root.addEventListener('input', e => {
+    const t = e.target;
+    if (t.classList.contains('wg-input')) {
+      S.inputs[t.dataset.id + '|' + t.dataset.col] = t.value;
+      scheduleSave();
+      styleWgInput(t, true);
+      updateRowStatus(t.dataset.id, true);
+      updateGridProgress();
+    } else if (t.classList.contains('ex-input')) {
+      const ex = S.extras.find(x => x.id === t.dataset.id);
+      if (!ex) return;
+      ex[t.dataset.f] = t.value;
+      scheduleSave();
+      if (t.dataset.f === 'pinyin') {
+        document.querySelectorAll(`.wg-input[data-id="${ex.id}"]`).forEach(i => styleWgInput(i, false));
+        updateRowStatus(ex.id, false);
+        updateGridProgress();
+      }
+    }
+  });
+
+  root.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.target.classList.contains('wg-input') || e.target.classList.contains('ex-input'))) {
+      e.preventDefault();
+      const all = [...root.querySelectorAll('.wg-input, .ex-input')];
+      const i = all.indexOf(e.target);
+      if (all[i + 1]) all[i + 1].focus();
+    }
+  });
+
+  root.addEventListener('change', e => {
+    if (e.target.matches('[data-page-size]')) { S.pageSize = parseInt(e.target.value); S.page = 0; scheduleSave(); renderCurrentStudyMode(); }
+  });
+
+  root.addEventListener('click', e => {
+    const b = e.target.closest('button, [data-peek]');
+    if (!b) return;
+
+    if (b.dataset.peek) {
+      const key = b.dataset.peek;
+      peek.has(key) ? peek.delete(key) : peek.add(key);
+      const [id, field] = key.split('|');
+      const card = findCard(id), td = root.querySelector(`[data-cell="${key}"]`);
+      if (card && td) td.innerHTML = fieldInner(card, field);
+      return;
+    }
+    if (b.dataset.speak) return speakCardId(b.dataset.speak);
+    if (b.dataset.toggleHide) { const f = b.dataset.toggleHide; S.hide[f] = !S.hide[f]; peek.clear(); scheduleSave(); return renderCurrentStudyMode(); }
+    if (b.hasAttribute('data-show-all')) { S.hide = { hanzi: false, pinyin: false, meaning: false }; peek.clear(); scheduleSave(); return renderCurrentStudyMode(); }
+    if (b.hasAttribute('data-col-plus')) { if (S.repeatCols < 10) { S.repeatCols++; scheduleSave(); renderCurrentStudyMode(); } return; }
+    if (b.hasAttribute('data-col-minus')) { if (S.repeatCols > 1) { S.repeatCols--; scheduleSave(); renderCurrentStudyMode(); } return; }
+    if (b.hasAttribute('data-add-row')) return addExtraRow();
+    if (b.hasAttribute('data-page-prev')) { S.page--; scheduleSave(); return renderCurrentStudyMode(); }
+    if (b.hasAttribute('data-page-next')) { S.page++; scheduleSave(); return renderCurrentStudyMode(); }
+    if (b.hasAttribute('data-clear-inputs')) {
+      if (!confirm('Clear everything you typed in the grid?')) return;
+      S.inputs = {}; scheduleSave(); return renderCurrentStudyMode();
+    }
+    if (b.dataset.delExtra) {
+      S.extras = S.extras.filter(x => x.id !== b.dataset.delExtra);
+      Object.keys(S.inputs).forEach(k => { if (k.startsWith(b.dataset.delExtra + '|')) delete S.inputs[k]; });
+      scheduleSave(); return renderCurrentStudyMode();
+    }
+    if (b.dataset.saveExtra) {
+      const ex = S.extras.find(x => x.id === b.dataset.saveExtra);
+      if (!ex || !ex.hanzi.trim() || !ex.pinyin.trim() || !ex.meaning.trim()) return toast('Fill in Hanzi, Pinyin and Meaning first', 'err');
+      const target = (S.folder !== 'ALL' && appData.folders[S.folder]) ? S.folder : (Object.keys(appData.folders)[0] || 'Default Deck');
+      if (!appData.folders[target]) appData.folders[target] = [];
+      appData.folders[target].push({ id: uid('c'), hanzi: ex.hanzi.trim(), rawPinyin: ex.pinyin.trim(), pinyin: convertTonePinyin(ex.pinyin.trim()), meaning: ex.meaning.trim(), srs: '1min', weight: 3 });
+      S.extras = S.extras.filter(x => x.id !== ex.id);
+      Object.keys(S.inputs).forEach(k => { if (k.startsWith(ex.id + '|')) delete S.inputs[k]; });
+      saveDeck(); populateFolderDropdowns(); refreshActiveStudySet(true);
+      toast(`Saved to “${target}”`, 'ok');
+    }
+  });
+})();
+
+function renderFlashcardMode(container) {
+  const card = currentStudyCards[S.index];
+  isCardFlipped = false;
+  const fname = folderOf(card);
+  container.innerHTML = `
+  <div class="w-full max-w-xl flex flex-col items-center space-y-6 fade-in">
+    <div class="w-full flex justify-between items-center text-sm font-semibold text-slate-500 px-2">
+      <span>Folder: ${esc(fname)}</span>
+      <span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-bold">${S.index + 1} / ${currentStudyCards.length}</span>
+    </div>
+    <div class="w-full h-80 perspective-1000 cursor-pointer" onclick="flipFlashcard()">
+      <div id="flashcardInner" class="relative w-full h-full duration-300 transform-style-3d shadow-xl rounded-3xl border border-slate-200 bg-white">
+        <div class="absolute inset-0 backface-hidden rounded-3xl p-8 flex flex-col justify-between items-center bg-white overflow-hidden">
+          <svg class="absolute -right-6 -top-6 w-28 h-28 text-cobalt-600 opacity-[.07]" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0c.6 7.4 4.6 11.4 12 12-7.4.6-11.4 4.6-12 12-.6-7.4-4.6-11.4-12-12C7.4 11.4 11.4 7.4 12 0z"/></svg>
+          <div class="w-full flex justify-between items-center relative">
+            <span class="text-xs font-extrabold tracking-wide uppercase px-3 py-1 bg-slate-100 text-cobalt-600 rounded-full">${esc(fname)}</span>
+            <button onclick="event.stopPropagation(); speakCardId('${card.id}')" class="text-slate-400 hover:text-cobalt-600 p-2 rounded-full hover:bg-cobalt-50 transition">${ic('volume', 'w-6 h-6')}</button>
+          </div>
+          <div class="text-center my-auto px-4">
+            <h2 class="font-hanzi text-6xl font-bold text-ink mb-3">${esc(card.hanzi)}</h2>
+            <p class="text-2xl font-bold text-cobalt-600">${esc(card.pinyin)}</p>
+          </div>
+          <p class="text-xs font-bold text-slate-400 flex items-center space-x-1">${ic('rotate-cw', 'w-3.5 h-3.5')}<span>Click card or press Space to reveal meaning</span></p>
+        </div>
+        <div class="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl p-8 flex flex-col justify-between items-center bg-ink text-white">
+          <div class="w-full flex justify-between items-center">
+            <span class="text-xs font-extrabold tracking-wide uppercase px-3 py-1 bg-ink-700 text-cobalt-300 rounded-full">${esc(fname)}</span>
+            <button onclick="event.stopPropagation(); speakCardId('${card.id}')" class="text-slate-400 hover:text-white p-2 rounded-full hover:bg-ink-700 transition">${ic('volume', 'w-6 h-6')}</button>
+          </div>
+          <div class="text-center my-auto px-4">
+            <h3 class="text-3xl font-extrabold text-cobalt-300 mb-2">${esc(card.meaning)}</h3>
+            <p class="font-hanzi text-3xl font-bold text-slate-200">${esc(card.hanzi)}</p>
+            <p class="text-lg text-slate-400 font-medium mt-1">${esc(card.pinyin)}</p>
+          </div>
+          <p class="text-xs text-slate-400 font-bold">Rate it (keys 1–4):</p>
+        </div>
+      </div>
+    </div>
+    <div id="ankiButtons" class="w-full grid grid-cols-4 gap-3 opacity-50 pointer-events-none transition-opacity duration-200">
+      <button onclick="rateFlashcard('1min')"  class="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold transition"><span class="text-sm">Again</span><span class="text-[10px] font-semibold text-rose-500">1 min</span></button>
+      <button onclick="rateFlashcard('1day')"  class="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-bold transition"><span class="text-sm">Hard</span><span class="text-[10px] font-semibold text-amber-500">1 day</span></button>
+      <button onclick="rateFlashcard('3days')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-bold transition"><span class="text-sm">Good</span><span class="text-[10px] font-semibold text-blue-500">3 days</span></button>
+      <button onclick="rateFlashcard('7days')" class="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold transition"><span class="text-sm">Easy</span><span class="text-[10px] font-semibold text-emerald-500">7 days</span></button>
+    </div>
+    <div class="flex items-center space-x-3 text-[11px] font-semibold text-slate-400">
+      <button onclick="prevCard()" class="flex items-center space-x-1 hover:text-cobalt-600">${ic('left', 'w-3.5 h-3.5')}<span>Prev</span></button>
+      <span>← → to skip · Space to flip</span>
+      <button onclick="nextCard()" class="flex items-center space-x-1 hover:text-cobalt-600"><span>Skip</span>${ic('right', 'w-3.5 h-3.5')}</button>
+    </div>
+  </div>`;
+  if (S.autoplay) speakText(card.hanzi);
+}
+function flipFlashcard() {
+  const inner = document.getElementById('flashcardInner'), btns = document.getElementById('ankiButtons');
+  if (!inner) return;
+  isCardFlipped = !isCardFlipped;
+  inner.classList.toggle('rotate-y-180', isCardFlipped);
+  btns.classList.toggle('opacity-50', !isCardFlipped);
+  btns.classList.toggle('pointer-events-none', !isCardFlipped);
+}
+function rateFlashcard(stage) {
+  const card = currentStudyCards[S.index]; if (!card) return;
+  updateCardSRSStage(card.id, stage);
+  recordResult(stage === '3days' || stage === '7days');
+  nextCard();
+}
+
+function generatePinyinDistractors(card) {
+  const correctPinyin = card.pinyin;
+  const raw = card.rawPinyin || '';
+  const syllables = raw.split(/\s+/);
+  const distractors = new Set();
+
+  if (syllables.length > 0 && /\d/.test(raw)) {
+    let attempts = 0;
+    while (distractors.size < 3 && attempts < 30) {
+      attempts++;
+      const modSyls = syllables.map(syl => {
+        return syl.replace(/([a-zA-ZüÜ]+)([1-5])?/, (_, p, t) => {
+          const currTone = t ? parseInt(t, 10) : 4;
+          let newTone = Math.floor(Math.random() * 4) + 1;
+          if (newTone === currTone) newTone = (currTone % 4) + 1;
+          return p + newTone;
+        });
+      });
+      const altRaw = modSyls.join(' ');
+      const altPinyin = convertTonePinyin(altRaw);
+      if (altPinyin !== correctPinyin) distractors.add(altPinyin);
+    }
+  }
+
+  if (distractors.size < 3) {
+    const pool = allCards().filter(c => c.id !== card.id && c.pinyin !== card.pinyin);
+    shuffleArray(pool);
+    pool.forEach(c => {
+      if (distractors.size < 3 && c.pinyin !== correctPinyin) distractors.add(c.pinyin);
+    });
+  }
+
+  const options = [correctPinyin, ...Array.from(distractors).slice(0, 3)];
+  shuffleArray(options);
+  return options;
+}
+
+function renderQuizMode(container) {
+  const card = currentStudyCards[S.index];
+  const options = generatePinyinDistractors(card);
+
+  container.innerHTML = `
+  <div class="w-full max-w-xl flex flex-col space-y-6 fade-in">
+    <div class="w-full flex justify-between items-center text-sm font-semibold text-slate-500 px-2">
+      <span>Multiple Choice Quiz</span>
+      <div class="flex items-center space-x-2">${comboChip()}<span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-bold">${S.index + 1} / ${currentStudyCards.length}</span></div>
+    </div>
+    <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center space-y-6">
+      <div class="flex items-center space-x-3">
+        <h2 class="font-hanzi text-5xl font-bold text-ink">${esc(card.hanzi)}</h2>
+        <button onclick="speakCardId('${card.id}')" class="text-slate-400 hover:text-cobalt-600 p-2 rounded-full hover:bg-cobalt-50 transition">${ic('volume', 'w-6 h-6')}</button>
+      </div>
+      <p class="text-base font-semibold text-slate-600">Select the correct Pinyin for: “${esc(card.meaning)}”</p>
+      <div id="quizOptions" class="w-full grid grid-cols-1 gap-3 pt-2"></div>
+    </div>
+  </div>`;
+
+  const wrap = document.getElementById('quizOptions');
+  let done = false, missed = false;
+  options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'w-full text-left p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-cobalt-50 hover:border-cobalt-200 font-bold transition flex items-center justify-between';
+    btn.innerHTML = `<span class="text-slate-800 text-base">${esc(opt)}</span><span class="text-[10px] font-bold text-slate-300">${i + 1}</span>`;
+    btn.dataset.key = String(i + 1);
+    btn.onclick = () => {
+      if (done) return;
+      if (opt === card.pinyin) {
+        done = true;
+        btn.className = 'w-full text-left p-4 rounded-2xl border bg-emerald-500 text-white border-emerald-600 font-bold flex items-center justify-between';
+        if (!missed) { updateCardSRSStage(card.id, '3days'); recordResult(true); }
+        setTimeout(nextCard, 500);
+      } else {
+        btn.className = 'w-full text-left p-4 rounded-2xl border bg-rose-500 text-white border-rose-600 font-bold flex items-center justify-between';
+        if (!missed) { missed = true; updateCardSRSStage(card.id, '1min'); recordResult(false); }
+      }
+    };
+    wrap.appendChild(btn);
+  });
+  if (S.autoplay) speakText(card.hanzi);
+}
+
+function renderTypingMode(container) {
+  const card = currentStudyCards[S.index];
+  container.innerHTML = `
+  <div class="w-full max-w-xl flex flex-col space-y-6 fade-in">
+    <div class="w-full flex justify-between items-center text-sm font-semibold text-slate-500 px-2">
+      <span>Pinyin Tone Typing Practice</span>
+      <div class="flex items-center space-x-2">${comboChip()}<span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-bold">${S.index + 1} / ${currentStudyCards.length}</span></div>
+    </div>
+    <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center space-y-6">
+      <div>
+        <span class="text-xs font-bold tracking-wide uppercase px-3 py-1 bg-slate-100 text-cobalt-600 rounded-full">${esc(folderOf(card))}</span>
+        <div class="flex items-center justify-center space-x-2 my-4">
+          <h2 class="font-hanzi text-6xl font-bold text-ink">${esc(card.hanzi)}</h2>
+          <button onclick="speakCardId('${card.id}')" class="text-slate-400 hover:text-cobalt-600 p-2 rounded-full hover:bg-cobalt-50 transition">${ic('volume', 'w-6 h-6')}</button>
+        </div>
+        <p class="text-lg font-bold text-slate-600">${esc(card.meaning)}</p>
+      </div>
+      <form id="typingForm" class="w-full space-y-4">
+        <input type="text" id="typingInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type Pinyin with tones (e.g. ${esc(card.rawPinyin)})" class="focus-ring w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3.5 text-center text-lg font-bold text-slate-800 placeholder-slate-400 focus:bg-white transition">
+        <div id="typingFeedback" class="hidden text-sm font-bold p-3 rounded-xl"></div>
+        <div class="flex space-x-3">
+          <button type="button" id="typingHintBtn" class="flex items-center justify-center space-x-1.5 px-4 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold py-3.5 rounded-2xl transition">${ic('bulb', 'w-4 h-4')}<span>Hint</span></button>
+          <button type="submit" id="typingSubmitBtn" class="flex-1 bg-cobalt-600 hover:bg-cobalt-700 text-white font-bold py-3.5 rounded-2xl transition shadow-md shadow-cobalt-200">Check Answer</button>
+          <button type="button" id="typingNextBtn" onclick="nextCard()" class="hidden flex-1 bg-ink hover:bg-ink-800 text-white font-bold py-3.5 rounded-2xl transition">Next Word</button>
+        </div>
+      </form>
+      <div class="text-left w-full bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs text-slate-500 space-y-1">
+        <p class="font-bold text-slate-600">💡 Input Help:</p>
+        <p>Tone numbers: <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200">te4 da4</code> → <code class="text-cobalt-600 font-bold">tè dà</code>. Press Enter to check, Enter again for next.</p>
+      </div>
+    </div>
+  </div>`;
+  let answered = false, usedHint = false;
+  document.getElementById('typingHintBtn').onclick = () => {
+    usedHint = true;
+    const fb = document.getElementById('typingFeedback');
+    fb.className = 'text-sm font-bold p-3 rounded-xl bg-amber-50 text-amber-700 border border-amber-200';
+    fb.innerHTML = `Hint: <span class="font-mono tracking-widest">${esc(pinyinHint(card.rawPinyin))}</span>`;
+    document.getElementById('typingInput').focus();
+  };
+  document.getElementById('typingForm').onsubmit = e => {
+    e.preventDefault();
+    if (answered) return nextCard();
+    const input = document.getElementById('typingInput');
+    if (!input.value.trim()) return;
+    answered = true;
+    const fb = document.getElementById('typingFeedback');
+    if (pinyinMatches(input.value, card)) {
+      fb.className = 'text-sm font-bold p-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200';
+      fb.innerHTML = `✓ Correct! (${esc(card.pinyin)})`;
+      updateCardSRSStage(card.id, usedHint ? '1day' : '3days'); recordResult(true);
+    } else {
+      fb.className = 'text-sm font-bold p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200';
+      fb.innerHTML = `✗ Incorrect. Correct Pinyin: <strong>${esc(card.pinyin)}</strong>`;
+      updateCardSRSStage(card.id, '1min'); recordResult(false);
+    }
+    input.readOnly = true;
+    document.getElementById('typingSubmitBtn').classList.add('hidden');
+    document.getElementById('typingHintBtn').classList.add('hidden');
+    document.getElementById('typingNextBtn').classList.remove('hidden');
+  };
+  setTimeout(() => { const el = document.getElementById('typingInput'); if (el) el.focus(); }, 40);
+  if (S.autoplay) speakText(card.hanzi);
+}
+
+function renderAudioMode(container) {
+  const card = currentStudyCards[S.index];
+  container.innerHTML = `
+  <div class="w-full max-w-xl flex flex-col space-y-6 fade-in">
+    <div class="w-full flex justify-between items-center text-sm font-semibold text-slate-500 px-2">
+      <span>Audio Listening Practice</span>
+      <div class="flex items-center space-x-2">${comboChip()}<span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-bold">${S.index + 1} / ${currentStudyCards.length}</span></div>
+    </div>
+    <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center space-y-6">
+      <div class="flex items-center space-x-3">
+        <button onclick="speakCardId('${card.id}')" class="w-24 h-24 rounded-full bg-cobalt-50 hover:bg-cobalt-100 border-2 border-cobalt-200 text-cobalt-600 flex items-center justify-center shadow-lg transition active:scale-95">${ic('volume', 'w-12 h-12')}</button>
+        <button id="slowBtn" class="text-xs font-bold px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600">🐢 Slow</button>
+      </div>
+      <p class="text-xs text-slate-400 font-semibold">Listen, then type the Pinyin (or the Hanzi)</p>
+      <div id="audioReveal" class="hidden space-y-1 bg-slate-50 p-4 rounded-2xl w-full">
+        <h3 class="font-hanzi text-3xl font-bold text-ink">${esc(card.hanzi)}</h3>
+        <p class="text-base text-cobalt-600 font-bold">${esc(card.pinyin)}</p>
+        <p class="text-sm text-slate-500 font-semibold">${esc(card.meaning)}</p>
+      </div>
+      <form id="audioForm" class="w-full space-y-3">
+        <input type="text" id="audioInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type Pinyin (e.g. te4 da4) or Hanzi…" class="focus-ring w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3.5 text-center text-lg font-bold text-slate-800 placeholder-slate-400 focus:bg-white transition">
+        <div class="flex space-x-3">
+          <button type="button" id="audioShowBtn" class="px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-2xl transition text-sm">Show answer</button>
+          <button type="submit" id="audioSubmit" class="flex-1 bg-cobalt-600 hover:bg-cobalt-700 text-white font-bold py-3.5 rounded-2xl transition shadow-md shadow-cobalt-200">Verify Answer</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  let settled = false;
+  document.getElementById('slowBtn').onclick = () => { const r = S.rate; S.rate = 0.55; speakText(card.hanzi); S.rate = r; };
+  document.getElementById('audioShowBtn').onclick = () => {
+    document.getElementById('audioReveal').classList.remove('hidden');
+    if (!settled) { settled = true; updateCardSRSStage(card.id, '1min'); recordResult(false); }
+    const s = document.getElementById('audioSubmit'); s.textContent = 'Next'; s.type = 'button'; s.onclick = nextCard;
+  };
+  document.getElementById('audioForm').onsubmit = e => {
+    e.preventDefault();
+    const input = document.getElementById('audioInput');
+    const v = input.value.trim(); if (!v) return;
+    const ok = pinyinMatches(v, card) || v === card.hanzi;
+    document.getElementById('audioReveal').classList.remove('hidden');
+    input.classList.remove('border-slate-300', 'bg-slate-50');
+    if (ok) {
+      input.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+      if (!settled) { settled = true; updateCardSRSStage(card.id, '3days'); recordResult(true); }
+      setTimeout(nextCard, 800);
+    } else {
+      input.classList.remove('border-emerald-500', 'bg-emerald-50');
+      input.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-700');
+      if (!settled) { settled = true; updateCardSRSStage(card.id, '1min'); recordResult(false); }
+    }
+  };
+  setTimeout(() => { const el = document.getElementById('audioInput'); if (el) el.focus(); }, 40);
+  setTimeout(() => speakText(card.hanzi), 150);
+}
+
+function modalOpen() { return !document.getElementById('importModal').classList.contains('hidden') || !document.getElementById('manageModal').classList.contains('hidden'); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (isGridExpanded) { toggleGridExpand(); return; }
+    if (!document.getElementById('importModal').classList.contains('hidden')) closeImportModal();
+    if (!document.getElementById('manageModal').classList.contains('hidden')) closeManageModal();
+    return;
+  }
+  if (modalOpen()) return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+  if (!currentStudyCards.length) return;
+  if (S.mode === 'flashcard') {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipFlashcard(); }
+    else if (e.key === 'ArrowRight') nextCard();
+    else if (e.key === 'ArrowLeft') prevCard();
+    else if (isCardFlipped && '1234'.includes(e.key) && e.key) rateFlashcard(['1min', '1day', '3days', '7days'][parseInt(e.key) - 1]);
+  } else if (S.mode === 'quiz' && '1234'.includes(e.key) && e.key.length === 1) {
+    const b = document.querySelector(`#quizOptions button[data-key="${e.key}"]`); if (b) b.click();
+  }
+});
+
+function openImportModal() { populateFolderDropdowns(); toggleFolderMode(); document.getElementById('importModal').classList.remove('hidden'); }
+function closeImportModal() { document.getElementById('importModal').classList.add('hidden'); }
+function toggleFolderMode() { document.getElementById('newFolderContainer').classList.toggle('hidden', document.getElementById('importFolderSelect').value !== 'NEW'); }
+function copyAIPrompt() {
+  const ta = document.getElementById('aiPromptText');
+  const done = () => toast('AI prompt copied', 'ok');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done).catch(() => { ta.select(); document.execCommand('copy'); done(); });
+  else { ta.select(); document.execCommand('copy'); done(); }
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0]; if (!file) return;
+  if (document.getElementById('importFolderSelect').value === 'NEW') {
+    const f = document.getElementById('importNewFolderName');
+    if (!f.value) f.value = file.name.replace(/\.[^/.]+$/, '');
+  }
+  const r = new FileReader();
+  r.onload = ev => { document.getElementById('importTextarea').value = ev.target.result; };
+  r.readAsText(file);
+  e.target.value = '';
+}
+function processImport() {
+  const sel = document.getElementById('importFolderSelect').value;
+  let target;
+  if (sel === 'NEW') {
+    target = document.getElementById('importNewFolderName').value.trim();
+    if (!target) return toast('Please enter a folder name', 'err');
+  } else target = sel;
+  const raw = document.getElementById('importTextarea').value.trim();
+  if (!raw) return toast('Please paste vocabulary text', 'err');
+
+  const existing = appData.folders[target] || [];
+  const seen = new Set(existing.map(c => c.hanzi + '|' + normalizeAnswer(c.rawPinyin)));
+  const fresh = []; let skipped = 0;
+  raw.split(/\r?\n/).forEach(line => {
+    if (!line.trim()) return;
+    const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+    if (parts.length < 3) return;
+    const hanzi = parts[0].trim(), rawPinyin = parts[1].trim(), meaning = parts.slice(2).join(' ').trim();
+    if (!hanzi || !rawPinyin) return;
+    const k = hanzi + '|' + normalizeAnswer(rawPinyin);
+    if (seen.has(k)) { skipped++; return; }
+    seen.add(k);
+    fresh.push({ id: uid('c'), hanzi, rawPinyin, pinyin: convertTonePinyin(rawPinyin), meaning, srs: '1min', weight: 3 });
+  });
+  if (!fresh.length) return toast(skipped ? 'All words already exist in this folder' : 'Invalid format: need 3 columns (Hanzi, Pinyin, Meaning)', 'err');
+
+  if (!appData.folders[target]) appData.folders[target] = [];
+  appData.folders[target].push(...fresh);
+  saveDeck();
+  S.folder = target; S.srs = 'ALL'; document.getElementById('srsFilterSelect').value = 'ALL';
+  populateFolderDropdowns(); refreshActiveStudySet();
+  closeImportModal();
+  document.getElementById('importTextarea').value = '';
+  document.getElementById('importNewFolderName').value = '';
+  toast(`Imported ${fresh.length} word${fresh.length > 1 ? 's' : ''}${skipped ? ` (${skipped} duplicates skipped)` : ''}`, 'ok');
+}
+
+function openManageModal() {
+  manageActiveFolder = (S.folder !== 'ALL' && appData.folders[S.folder]) ? S.folder : '';
+  editingCardId = null;
+  document.getElementById('manageModal').classList.remove('hidden');
+  renderManageFolderList();
+}
+function closeManageModal() {
+  document.getElementById('manageModal').classList.add('hidden');
+  document.getElementById('inlineAddWordForm').classList.add('hidden');
+  editingCardId = null;
+  populateFolderDropdowns(); refreshActiveStudySet(true);
+}
+function renderManageFolderList() {
+  const list = document.getElementById('manageFolderList');
+  const keys = Object.keys(appData.folders);
+  if (!keys.length) { list.innerHTML = '<p class="text-xs text-slate-400 font-semibold">No folders yet. Use Import Words to create one.</p>'; manageActiveFolder = ''; renderManageWordTable(); return; }
+  if (!manageActiveFolder || !appData.folders[manageActiveFolder]) manageActiveFolder = keys[0];
+  list.innerHTML = '';
+  keys.forEach(k => {
+    const b = document.createElement('button');
+    const active = k === manageActiveFolder;
+    b.className = `w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex justify-between items-center ${active ? 'bg-cobalt-600 text-white' : 'text-slate-700 hover:bg-slate-200'}`;
+    b.innerHTML = `<span class="truncate">${esc(k)}</span><span class="opacity-80">${appData.folders[k].length}</span>`;
+    b.onclick = () => { manageActiveFolder = k; editingCardId = null; document.getElementById('inlineAddWordForm').classList.add('hidden'); renderManageFolderList(); };
+    list.appendChild(b);
+  });
+  renderManageWordTable();
+}
+function renderManageWordTable() {
+  document.getElementById('manageActiveFolderName').textContent = manageActiveFolder ? `Folder: ${manageActiveFolder}` : 'Folder Words';
+  const tbody = document.getElementById('manageWordTableBody');
+  const words = appData.folders[manageActiveFolder] || [];
+  if (!words.length) { tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-400 text-xs font-bold">No words in this folder. Click 'Add New Word Row' to create one.</td></tr>`; return; }
+  tbody.innerHTML = '';
+  words.forEach(card => {
+    const tr = document.createElement('tr');
+    if (editingCardId === card.id) {
+      tr.className = 'bg-amber-50/60';
+      tr.innerHTML = `
+        <td class="py-2.5 px-4"><input id="eh" value="${esc(card.hanzi)}" class="w-full bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold"></td>
+        <td class="py-2.5 px-4"><input id="ep" value="${esc(card.rawPinyin)}" class="w-full bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold"></td>
+        <td class="py-2.5 px-4"><input id="em" value="${esc(card.meaning)}" class="w-full bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs font-bold"></td>
+        <td class="py-2.5 px-4 text-right space-x-1"><button class="b-save bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-xs">Save</button><button class="b-cancel bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-2.5 py-1 rounded-lg text-xs">Cancel</button></td>`;
+      tr.querySelector('.b-save').onclick = () => {
+        const h = tr.querySelector('#eh').value.trim(), p = tr.querySelector('#ep').value.trim(), m = tr.querySelector('#em').value.trim();
+        if (h && p && m) { card.hanzi = h; card.rawPinyin = p; card.pinyin = convertTonePinyin(p); card.meaning = m; saveDeck(); }
+        editingCardId = null; renderManageWordTable();
+      };
+      tr.querySelector('.b-cancel').onclick = () => { editingCardId = null; renderManageWordTable(); };
+    } else {
+      tr.className = 'hover:bg-slate-50/80 transition';
+      tr.innerHTML = `
+        <td class="py-3 px-4 font-hanzi font-bold text-ink text-lg">${esc(card.hanzi)}</td>
+        <td class="py-3 px-4 font-bold text-cobalt-600"><div>${esc(card.pinyin)}</div><div class="text-[10px] font-mono text-slate-400 font-normal">Tone: ${esc(card.rawPinyin)}</div></td>
+        <td class="py-3 px-4 font-semibold text-slate-700">${esc(card.meaning)}</td>
+        <td class="py-3 px-4 text-right space-x-1">
+          <button class="b-edit p-1.5 text-slate-400 hover:text-cobalt-600 hover:bg-cobalt-50 rounded-lg transition" title="Edit">${ic('edit', 'w-4 h-4')}</button>
+          <button class="b-del p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Delete">${ic('trash', 'w-4 h-4')}</button>
+        </td>`;
+      tr.querySelector('.b-edit').onclick = () => { editingCardId = card.id; renderManageWordTable(); };
+      tr.querySelector('.b-del').onclick = () => {
+        if (!confirm('Delete this word row?')) return;
+        appData.folders[manageActiveFolder] = appData.folders[manageActiveFolder].filter(c => c.id !== card.id);
+        Object.keys(S.inputs).forEach(k => { if (k.startsWith(card.id + '|')) delete S.inputs[k]; });
+        saveDeck(); scheduleSave(); renderManageFolderList();
+      };
+    }
+    tbody.appendChild(tr);
+  });
+}
+function toggleAddWordForm() {
+  if (!manageActiveFolder) return toast('Create a folder first via Import Words', 'err');
+  document.getElementById('inlineAddWordForm').classList.toggle('hidden');
+}
+function saveInlineNewWord(e) {
+  e.preventDefault();
+  const h = document.getElementById('addHanzi').value.trim(), p = document.getElementById('addPinyin').value.trim(), m = document.getElementById('addMeaning').value.trim();
+  if (!h || !p || !m) return;
+  appData.folders[manageActiveFolder].push({ id: uid('c'), hanzi: h, rawPinyin: p, pinyin: convertTonePinyin(p), meaning: m, srs: '1min', weight: 3 });
+  saveDeck();
+  ['addHanzi', 'addPinyin', 'addMeaning'].forEach(i => document.getElementById(i).value = '');
+  document.getElementById('inlineAddWordForm').classList.add('hidden');
+  renderManageFolderList();
+}
+function deleteCurrentFolder() {
+  if (!manageActiveFolder) return;
+  if (!confirm(`Delete folder "${manageActiveFolder}" and all its words?`)) return;
+  delete appData.folders[manageActiveFolder];
+  manageActiveFolder = Object.keys(appData.folders)[0] || '';
+  if (!appData.folders[S.folder]) S.folder = 'ALL';
+  saveDeck(); renderManageFolderList();
+}
+
+function exportBackupData() {
+  saveState();
+  const payload = { app: 'pinyin-easy-writing', version: 2, folders: appData.folders, state: S };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `pinyin_easy_writing_backup_${todayKey()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('Backup downloaded', 'ok');
+}
+function importBackupData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!d || !d.folders || typeof d.folders !== 'object') return toast('Invalid backup file structure', 'err');
+      appData = { folders: d.folders };
+      if (d.state && typeof d.state === 'object') S = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...d.state, hide: { ...DEFAULT_STATE.hide, ...(d.state.hide || {}) } };
+      normalizeDeck();
+      S.folder = 'ALL';
+      saveDeck(); saveState();
+      boot();
+      toast('Backup restored', 'ok');
+    } catch (err) { toast('Could not read backup file', 'err'); }
+  };
+  r.readAsText(file);
+  event.target.value = '';
+}
+
+function boot() {
+  populateFolderDropdowns();
+  document.getElementById('srsFilterSelect').value = S.srs;
+  document.getElementById('prefAutoplay').checked = !!S.autoplay;
+  document.getElementById('prefRate').value = String(S.rate);
+  document.getElementById('total-words-count').textContent = countAll();
+  renderTodayCard();
+  setStudyMode(S.mode, true);
+  refreshActiveStudySet(true);
+}
+window.addEventListener('DOMContentLoaded', () => {
+  hydrateIcons();
+  loadAll();
+  boot();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+});
+</script>
+</body>
+</html>
